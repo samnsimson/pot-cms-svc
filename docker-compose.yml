@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: "postcms_db"
+    restart: always
+    environment:
+      POSTGRES_USER: "postcms"
+      POSTGRES_PASSWORD: "postcms"
+      POSTGRES_DB: "postcms"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postcms_db_data:/var/lib/postcms_db/data
+
+volumes:
+  postcms_db_data:
+    driver: local
