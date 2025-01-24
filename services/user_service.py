@@ -1,11 +1,10 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.exc import IntegrityError
-from exceptions import BadRequestException, InternalServerError, NotFoundException, UnauthorizedException
-from models import Domain, RoleEnum, User
+from sqlalchemy.exc import IntegrityError, NoResultFound
+from exceptions import BadRequestException, InternalServerError, UnauthorizedException
+from models import Domain, Role, RoleEnum, User
 from schemas.user_schema import UserCreateSchema
 from passlib.context import CryptContext
-
 from services.roles_and_permission import RolesAndPermission
 
 
@@ -44,8 +43,11 @@ class UserService:
             else: raise InternalServerError(f"Error: {str(e)}")
 
     async def authenticate_user(self, email: str, password: str, session: AsyncSession):
-        result = await session.exec(select(User).where(User.email == email))
-        existing_user = result.first()
-        if existing_user is None: raise NotFoundException("User not found")
-        if not self.__verify_password(password, existing_user.password): raise UnauthorizedException("Wrong Password")
-        return existing_user
+        try:
+            result = await session.exec(select(User, Role).join(Role, Role.id == User.role_id).where(User.email == email))
+            existing_user, role = result.first()
+            if existing_user is None: raise UnauthorizedException("User not found")
+            if not self.__verify_password(password, existing_user.password): raise UnauthorizedException("Wrong Password")
+            return existing_user, role
+        except NoResultFound: raise UnauthorizedException("User not found")
+        except Exception as e: raise InternalServerError(f"Unexpected error: {str(e)}")
