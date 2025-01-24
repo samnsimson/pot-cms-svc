@@ -2,7 +2,9 @@ import uvicorn
 from fastapi import FastAPI
 from config import config
 from contextlib import asynccontextmanager
+from database import async_session
 from routes import setup_v1_routes
+from seed import seed_roles
 
 TITLE = config.PROJECT_NAME
 DESCRIPTION = config.PROJECT_DESCRIPTION
@@ -11,7 +13,9 @@ VERSION = config.PROJECT_VERSION
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    setup_v1_routes(app=app)
+    setup_v1_routes(app)
+    async with async_session() as session:
+        await seed_roles(session)
     yield
 
 

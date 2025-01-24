@@ -2,14 +2,17 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from exceptions import BadRequestException, InternalServerError, NotFoundException, UnauthorizedException
-from models import User
+from models import Domain, RoleEnum, User
 from schemas.user_schema import UserCreateSchema
 from passlib.context import CryptContext
+
+from services.roles_and_permission import RolesAndPermission
 
 
 class UserService:
     def __init__(self):
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.roles_service = RolesAndPermission()
 
     def __verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return self.pwd_context.verify(plain_password, hashed_password)
@@ -20,7 +23,15 @@ class UserService:
     async def register_user(self, user_data: UserCreateSchema, session: AsyncSession):
         try:
             hashed_password = self.__hash_password(user_data.password)
-            new_user = User(**user_data.model_dump(exclude={"password"}), password=hashed_password)
+            new_user = User(**user_data.model_dump(exclude={"password", "domain"}), password=hashed_password)
+
+            # ASSIGN SUPER ADMIN ROLE TO FIRST USER
+            role = await self.roles_service.get_role_by_name(RoleEnum.super_admin, session)
+            if role is not None: new_user.role_id = role.id
+
+            # CREATE DOMAIN IF PROVIDED
+            if user_data.domain is not None: new_user.domain = Domain(name=user_data.domain.name, host=user_data.domain.host)
+
             session.add(new_user)
             await session.commit()
             await session.refresh(new_user)
@@ -30,7 +41,7 @@ class UserService:
             if "email" in str(e.orig): raise BadRequestException("Email already in use")
             elif "phone" in str(e.orig): raise BadRequestException("Phone already in use")
             elif "username" in str(e.orig): raise BadRequestException("Username already in use")
-            else: raise InternalServerError("Unexpected error occurred while registering user.")
+            else: raise InternalServerError(f"Error: {str(e)}")
 
     async def authenticate_user(self, email: str, password: str, session: AsyncSession):
         result = await session.exec(select(User).where(User.email == email))
