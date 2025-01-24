@@ -10,7 +10,7 @@ from fnmatch import fnmatch
 class AuthMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, dispatch=None):
         super().__init__(app, dispatch)
-        self.exclude_urls = ["/docs", "/api/v1/openapi.json", "/auth/*"]
+        self.exclude_urls = ["/docs", "/api/v1/openapi.json", "/api/v1/auth/*"]
         self.auth_scheme = config.AUTH_SCHEME
         self.auth_service = AuthService()
 

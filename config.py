@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     DATABASE_PORT: str = Field(default="5432", description="Database port")
     JWT_SECRET: str = Field(default=None, description="Secret key to encode JWT")
     JWT_ALGORITHM: str = Field(default=None, description="Algorithm used to encode JWT")
-    AUTH_SCHEME: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+    AUTH_SCHEME: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
     class Config:
         env_file = ".env"

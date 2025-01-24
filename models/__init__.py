@@ -36,6 +36,11 @@ class TimeStamp:
 #################### MANY TO MANY MODELS ####################
 
 
+class UserApps(SQLModel, TimeStamp, table=True):
+    user_id: str = Field(foreign_key="user.id", primary_key=True)
+    app_id: str = Field(foreign_key="app.id", primary_key=True)
+
+
 class RolePermission(SQLModel, TimeStamp, table=True):
     role_id: str = Field(foreign_key="role.id", primary_key=True)
     permission_id: str = Field(foreign_key="permission.id", primary_key=True)
@@ -69,10 +74,11 @@ class Domain(SQLModel, TimeStamp, table=True):
 class App(SQLModel, TimeStamp, table=True):
     id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
     name: Optional[str] = Field(default=None)
-    secret: str = Field(nullable=False)
+    secret: str = Field(default_factory=generate_secret_key, nullable=False)
     is_active: bool = Field(default=True, nullable=False)
     domain_id: str = Field(foreign_key="domain.id")
     domain: Domain = Relationship(back_populates="apps")
+    users: List["User"] = Relationship(back_populates="apps", link_model=UserApps)
 
 
 class User(SQLModel, TimeStamp, table=True):
@@ -82,11 +88,7 @@ class User(SQLModel, TimeStamp, table=True):
     phone: str = Field(nullable=False, unique=True, index=True)
     password: str = Field(nullable=False)
     domain_id: Optional[str] = Field(default=None, foreign_key="domain.id", nullable=True)
-    domain: Optional[Domain] = Relationship(back_populates="users")
     role_id: str = Field(foreign_key="role.id")
+    domain: Optional[Domain] = Relationship(back_populates="users")
     role: Role = Relationship(back_populates="users")
-
-    @classmethod
-    async def is_first_user(self, session: AsyncSession) -> bool:
-        result = await session.exec(select(User).join(Role).where(Role.name == RoleEnum.super_admin))
-        return len(result.all()) == 0
+    apps: List["App"] = Relationship(back_populates="users", link_model=UserApps)
