@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from config import config
 from contextlib import asynccontextmanager
-from database import async_session
+from middleware.auth_middleware import AuthMiddleware
 from routes import setup_v1_routes
 from seed import seed_roles
 
@@ -13,13 +13,17 @@ VERSION = config.PROJECT_VERSION
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    setup_v1_routes(app)
-    async with async_session() as session:
-        await seed_roles(session)
+    await seed_roles()
     yield
 
 
 app = FastAPI(title=TITLE, description=DESCRIPTION, version=VERSION, root_path="/api/v1", lifespan=lifespan)
+
+# MIDDLEWARES
+app.add_middleware(AuthMiddleware)
+
+# ROUTES
+setup_v1_routes(app)
 
 if __name__ == "__main__":
     uvicorn.run(app="main:app", host="0.0.0.0", port=8000, reload=True)
