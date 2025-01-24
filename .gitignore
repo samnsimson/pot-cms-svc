@@ -1,0 +1,57 @@
+# Python bytecode files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Virtual environment
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# FastAPI specific
+*.db
+*.sqlite3
+
+# pytest cache
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.hypothesis/
+
+# IDE specific files
+.vscode/
+.idea/
+
+# MySQL and PostgreSQL data files
+*.sql
+*.sql.gz
+*.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+*.dockerfile
+.dockerignore
+
+# Environment variable files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Migrations
+alembic/versions/
+
+# Local development environment configurations
+*.ini
+*.yml
+*.yaml
+
+# Pydantic
+*.pydantic/
