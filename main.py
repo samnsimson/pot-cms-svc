@@ -10,7 +10,7 @@ VERSION = config.PROJECT_VERSION
 
 
 @asynccontextmanager
-def lifecycle(app: FastAPI):
+async def lifecycle(app: FastAPI):
     init_db()
     yield
 
