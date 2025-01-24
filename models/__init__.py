@@ -1,19 +1,15 @@
 import re
 import secrets
 from typing import Optional
-from uuid import UUID, uuid4
+from uuid import uuid4
 from pydantic import field_validator
-from sqlalchemy import text
+from sqlalchemy import Column, DateTime
 from sqlmodel import Field, SQLModel
 from datetime import datetime, timezone
 
-uuid_kwargs = {"server_default": text("gen_random_uuid()"), "unique": True}
-created_at_kwargs = {"server_default": text("current_timestamp(0)")}
-updated_at_kwargs = {"server_default": text("current_timestamp(0)"), "onupdate": text("current_timestamp(0)")}
 
-
-def get_timestamp() -> datetime:
-    return datetime.now(timezone.utc)
+def generate_uuid():
+    return str(uuid4())
 
 
 def generate_secret_key() -> str:
@@ -21,22 +17,20 @@ def generate_secret_key() -> str:
     return secrets.token_hex(length)
 
 
-class BaseModel(SQLModel):
-    id: UUID = Field(primary_key=True, index=True, nullable=False, default_factory=uuid4, sa_column_kwargs=uuid_kwargs)
+class TimeStamp:
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
-class Timestamp(SQLModel):
-    created_at: datetime = Field(default_factory=get_timestamp, nullable=False, sa_column_kwargs=created_at_kwargs)
-    updated_at: datetime = Field(default_factory=get_timestamp, nullable=False, sa_column_kwargs=updated_at_kwargs)
-
-
-class Client(BaseModel, Timestamp, table=True):
+class Client(SQLModel, TimeStamp, table=True):
+    id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
     name: Optional[str] = Field(default=None)
     secret: str = Field(default_factory=generate_secret_key, nullable=False)
     is_active: bool = Field(default=True, nullable=False)
 
 
-class User(BaseModel, Timestamp, table=True):
+class User(SQLModel, TimeStamp, table=True):
+    id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
     username: str = Field(nullable=False, unique=True, index=True, min_length=3)
     email: str = Field(nullable=False, unique=True, index=True)
     phone: str = Field(nullable=False, unique=True, index=True)
