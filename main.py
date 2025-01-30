@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from config import config
 from contextlib import asynccontextmanager
 from middleware.auth_middleware import AuthMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from routes import setup_v1_routes
 from seed import seed_roles
 
@@ -20,6 +21,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=TITLE, description=DESCRIPTION, version=VERSION, root_path="/api/v1", lifespan=lifespan)
 
 # MIDDLEWARES
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(AuthMiddleware)
 
 # ROUTES

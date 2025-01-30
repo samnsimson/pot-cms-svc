@@ -1,7 +1,8 @@
+from fastapi import HTTPException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.exc import IntegrityError, NoResultFound
-from exceptions import BadRequestException, InternalServerError, UnauthorizedException
+from sqlalchemy.exc import IntegrityError
+from exceptions import BadRequestException, InternalServerError, NotFoundException, UnauthorizedException
 from models import Domain, Role, RoleEnum, User
 from schemas.user_schema import UserCreateSchema
 from passlib.context import CryptContext
@@ -23,14 +24,9 @@ class UserService:
         try:
             hashed_password = self.__hash_password(user_data.password)
             new_user = User(**user_data.model_dump(exclude={"password", "domain"}), password=hashed_password)
-
-            # ASSIGN SUPER ADMIN ROLE TO FIRST USER
+            new_user.domain = Domain(name=user_data.domain.name, host=user_data.domain.host)
             role = await self.roles_service.get_role_by_name(RoleEnum.super_admin, session)
             if role is not None: new_user.role_id = role.id
-
-            # CREATE DOMAIN IF PROVIDED
-            if user_data.domain is not None: new_user.domain = Domain(name=user_data.domain.name, host=user_data.domain.host)
-
             session.add(new_user)
             await session.commit()
             await session.refresh(new_user)
@@ -45,9 +41,12 @@ class UserService:
     async def authenticate_user(self, email: str, password: str, session: AsyncSession):
         try:
             result = await session.exec(select(User, Role).join(Role, Role.id == User.role_id).where(User.email == email))
-            existing_user, role = result.first()
+            user_role_pair = result.first()
+            if user_role_pair is None: raise UnauthorizedException("User not found")
+            existing_user, role = user_role_pair
             if existing_user is None: raise UnauthorizedException("User not found")
             if not self.__verify_password(password, existing_user.password): raise UnauthorizedException("Wrong Password")
+            if existing_user.domain_id is None: raise NotFoundException("Domain not found, Please create one")
             return existing_user, role
-        except NoResultFound: raise UnauthorizedException("User not found")
-        except Exception as e: raise InternalServerError(f"Unexpected error: {str(e)}")
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)

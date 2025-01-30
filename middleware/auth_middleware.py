@@ -22,5 +22,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
             payload = self.auth_service.verify_token(token)
             user_data = {"id": payload.get("sub", None), "host": payload.get("host", None), "role": payload.get("role", None)}
             setattr(request.state, "user", user_data)
+            setattr(request.state, "host", request.url.hostname)
             return await call_next(request)
         except HTTPException as e: return AuthResponse(str(e))

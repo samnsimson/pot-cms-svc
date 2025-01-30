@@ -1,9 +1,9 @@
-from uuid import UUID
-from sqlmodel import SQLModel
+from typing import Optional
+from sqlmodel import Field, SQLModel
 from models import RoleEnum
 
 
 class CurrentUser(SQLModel):
-    id: UUID
-    host: UUID
+    id: str
+    host: str
     role: RoleEnum

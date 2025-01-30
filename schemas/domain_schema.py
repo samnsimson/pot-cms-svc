@@ -1,4 +1,6 @@
+from datetime import datetime
 from sqlmodel import Field, SQLModel
+from schemas.base_schema import ID
 
 
 class DomainSchema(SQLModel):
@@ -8,3 +10,8 @@ class DomainSchema(SQLModel):
 
 class DomainCreateSchema(DomainSchema):
     pass
+
+
+class DomainOutSchema(DomainSchema, ID):
+    created_at: datetime
+    updated_at: datetime
