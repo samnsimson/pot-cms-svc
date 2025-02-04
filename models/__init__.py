@@ -66,6 +66,7 @@ class Domain(SQLModel, TimeStamp, table=True):
     id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
     name: str = Field(nullable=False)
     host: str = Field(nullable=False, unique=True, index=True)
+    url: Optional[str] = Field(default=None, nullable=True, unique=True, index=True)
     is_active: bool = Field(default=True, nullable=False)
     users: List["User"] = Relationship(back_populates="domain", cascade_delete=True)
     apps: List["App"] = Relationship(back_populates="domain", cascade_delete=True)
