@@ -49,4 +49,5 @@ class UserService:
             if existing_user.domain_id is None: raise NotFoundException("Domain not found, Please create one")
             return existing_user, role
         except HTTPException as e:
+            print(e)
             raise HTTPException(status_code=e.status_code, detail=e.detail)

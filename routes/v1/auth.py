@@ -1,4 +1,5 @@
 from datetime import timedelta
+from os import access
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette import status
@@ -20,8 +21,9 @@ async def login(session: session_dependency, response: Response, form_data: OAut
     user, role = await user_service.authenticate_user(form_data.username, form_data.password, session)
     access_token = auth_service.create_access_token({"sub": user.id, "host": user.domain_id, "role": role.name})
     refresh_token = auth_service.create_refresh_token({"sub": user.id, "host": user.domain_id, "role": role.name})
-    response.set_cookie("refresh_token", refresh_token, timedelta(days=7), httponly=True)
-    return {"access_token": access_token, "token_type": "Bearer"}
+    response.set_cookie(key="access_token", value=access_token, max_age=timedelta(minutes=1), httponly=True, secure=True, samesite="lax", path="/")
+    response.set_cookie(key="refresh_token", value=refresh_token, max_age=timedelta(days=7), httponly=True, secure=True, samesite="lax", path="/")
+    return LoginResponseSchema(status="Success", redirect_url="/", access_token=access_token, token_type="Bearer")
 
 
 @router.post("/register", operation_id="signup", status_code=status.HTTP_201_CREATED, response_model=UserOutSchema)
