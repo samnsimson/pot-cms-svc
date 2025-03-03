@@ -40,14 +40,14 @@ class UserService:
 
     async def authenticate_user(self, email: str, password: str, session: AsyncSession):
         try:
-            result = await session.exec(select(User, Role).join(Role, Role.id == User.role_id).where(User.email == email))
+            result = await session.exec(select(User, Role, Domain).join(Role, Role.id == User.role_id).join(Domain, Domain.id == User.domain_id).where(User.email == email))
             user_role_pair = result.first()
             if user_role_pair is None: raise UnauthorizedException("User not found")
-            existing_user, role = user_role_pair
+            existing_user, role, domain = user_role_pair
             if existing_user is None: raise UnauthorizedException("User not found")
             if not self.__verify_password(password, existing_user.password): raise UnauthorizedException("Wrong Password")
             if existing_user.domain_id is None: raise NotFoundException("Domain not found, Please create one")
-            return existing_user, role
+            return existing_user, role, domain
         except HTTPException as e:
             print(e)
             raise HTTPException(status_code=e.status_code, detail=e.detail)

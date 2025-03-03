@@ -1,12 +1,18 @@
-from fastapi import Request
+from typing import Annotated
+from fastapi import Depends
+from config import config
+from jose import JWTError, jwt
 from exceptions import UnauthorizedException
 from schemas.utils_schema import CurrentUser
 
 
-def get_current_user(request: Request) -> CurrentUser:
-    user_data: dict = request.state.__getattr__("user")
-    user_id = user_data.get("id", None)
-    user_role = user_data.get("role", None)
-    host = user_data.get("host", None)
-    if (user_id or user_role or host) is None: raise UnauthorizedException("Unauthorized")
-    return CurrentUser(id=user_id, host=host, role=user_role)
+async def get_current_user(token: Annotated[str, Depends(config.AUTH_SCHEME)]):
+    try:
+        payload = jwt.decode(token, config.JWT_SECRET, algorithms=[config.JWT_ALGORITHM])
+        user_id = payload.get("sub")
+        user_role = payload.get("role")
+        host = payload.get("host")
+        if user_id is None: raise UnauthorizedException(detail="Unauthorized")
+        return CurrentUser(id=user_id, host=host, role=user_role)
+    except JWTError:
+        raise UnauthorizedException("Unauthorized, Error validating jwt token")
