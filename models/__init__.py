@@ -74,7 +74,8 @@ class Domain(SQLModel, TimeStamp, table=True):
 
 class App(SQLModel, TimeStamp, table=True):
     id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
-    name: Optional[str] = Field(default=None)
+    name: str = Field(unique=True, index=True, nullable=False)
+    slug: str = Field(unique=True, index=True, nullable=False)
     secret: str = Field(default_factory=generate_secret_key, nullable=False)
     is_active: bool = Field(default=True, nullable=False)
     domain_id: str = Field(foreign_key="domain.id", ondelete="CASCADE")

@@ -11,8 +11,9 @@ async def get_current_user(token: Annotated[str, Depends(config.AUTH_SCHEME)]):
         payload = jwt.decode(token, config.JWT_SECRET, algorithms=[config.JWT_ALGORITHM])
         user_id = payload.get("sub")
         user_role = payload.get("role")
+        domain = payload.get("domain")
         host = payload.get("host")
         if user_id is None: raise UnauthorizedException(detail="Unauthorized")
-        return CurrentUser(id=user_id, host=host, role=user_role)
+        return CurrentUser(id=user_id, host=host, domain=domain, role=user_role)
     except JWTError:
         raise UnauthorizedException("Unauthorized, Error validating jwt token")

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 from config import config
 from exceptions import UnauthorizedException
 
@@ -21,4 +21,5 @@ class AuthService:
 
     def verify_token(self, token: str):
         try: return jwt.decode(token, config.JWT_SECRET, algorithms=[config.JWT_ALGORITHM])
-        except JWTError: raise UnauthorizedException(detail="Invalid token")
+        except ExpiredSignatureError: raise UnauthorizedException("Token has expired")
+        except JWTError: raise UnauthorizedException("Invalid token")

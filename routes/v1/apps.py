@@ -5,7 +5,7 @@ from starlette import status
 from dependencies import session_dependency, user_dependency
 from exceptions import ForbiddenException, NotFoundException
 from models import RoleEnum
-from schemas.apps_schema import AppCreateSchema, AppOutSchema
+from schemas.apps_schema import AppCreateSchema, AppDeleteOutSchema, AppOutSchema
 from schemas.user_schema import UserOutSchema
 from services.apps_service import AppsService
 
@@ -20,9 +20,9 @@ async def list_apps(user_data: user_dependency, session: session_dependency):
     return apps
 
 
-@router.get("/{id}", operation_id="get_app", status_code=status.HTTP_200_OK, response_model=AppOutSchema)
-async def get_app(id: UUID, user_data: user_dependency, session: session_dependency):
-    app = await app_service.get_app_by_id(id=id, user_data=user_data, session=session)
+@router.get("/{key}", operation_id="get_app_by_id_or_slug", status_code=status.HTTP_200_OK, response_model=AppOutSchema)
+async def get_app(key: UUID | str, user_data: user_dependency, session: session_dependency):
+    app = await app_service.get_app_by_id_or_slug(key=key, user_data=user_data, session=session)
     if not app: raise NotFoundException("App not found")
     return app
 
@@ -38,3 +38,10 @@ async def create_app(app_data: AppCreateSchema, user_data: user_dependency, sess
     if user_data.role != RoleEnum.super_admin: raise ForbiddenException("Not authorized")
     new_app = await app_service.create_app(app_data, user_data, session)
     return new_app
+
+
+@router.delete("/{id}", operation_id="delete_app", status_code=status.HTTP_200_OK, response_model=AppDeleteOutSchema)
+async def delete_app(id: UUID, user_data: user_dependency, session: session_dependency):
+    if user_data.role != RoleEnum.super_admin: raise ForbiddenException("Not authorized")
+    await app_service.delete_app(id=id, session=session)
+    return AppDeleteOutSchema(id=id, status="deleted")
