@@ -1,6 +1,6 @@
 from enum import Enum
 import secrets
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import uuid4
 from pydantic import Json
 from sqlalchemy import Column, DateTime
@@ -25,6 +25,11 @@ class RoleEnum(str, Enum):
     user = "user"
     admin = "admin"
     super_admin = "super_admin"
+
+
+class ContentTypeEnum(str, Enum):
+    folder = "folder"
+    file = "file"
 
 #################### MIXINS ####################
 
@@ -99,10 +104,10 @@ class User(SQLModel, TimeStamp, table=True):
 
 class Content(SQLModel, TimeStamp, table=True):
     id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
-    key: str = Field(nullable=False, index=True)
-    value: Optional[Json] = Field(default=None, sa_type=JSON)
+    name: str = Field(index=True, nullable=False)
+    slug: str = Field(unique=True, index=True, nullable=False)
+    data: Optional[Json] = Field(default=None, sa_type=JSON)
     app_id: str = Field(foreign_key="app.id", nullable=False, index=True, ondelete="CASCADE")
-    parent_id: Optional[str] = Field(default=None, foreign_key="content.id")
-    children: List["Content"] = Relationship(back_populates="parent", sa_relationship_kwargs={"remote_side": "Content.id"})
-    parent: Optional["Content"] = Relationship(back_populates="children")
+    parent_id: Optional[str] = Field(default=None, foreign_key="content.id", index=True)
+    children: Optional[List["Content"]] = Relationship(sa_relationship_kwargs={"lazy": "selectin", "join_depth": 100, "cascade": "delete"})
     app: App = Relationship(back_populates="content")
