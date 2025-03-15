@@ -1,10 +1,10 @@
 from uuid import UUID
 from slugify import slugify
-from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
-from exceptions import InternalServerError, UnprocessableEntityException
+from sqlalchemy.exc import IntegrityError, NoResultFound
+from sqlmodel import select, asc
+from exceptions import BadRequestException, InternalServerError, NotFoundException, UnprocessableEntityException
 from models import Content
-from schemas.conent_schema import ContentCreateSchema
+from schemas.conent_schema import ContentCreateSchema, ContentUpdateSchema
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 
@@ -26,6 +26,25 @@ class ContentService:
             raise InternalServerError(detail=str(e))
 
     async def get_content(self, app_id: UUID, session: AsyncSession):
-        statement = select(Content).where(Content.app_id == str(app_id), Content.parent_id == None)
+        statement = select(Content).where(Content.app_id == str(app_id), Content.parent_id == None).order_by(asc(Content.created_at))
         result = await session.exec(statement)
         return result.all()
+
+    async def update_content(self, app_id: UUID, content_id: UUID, data: ContentUpdateSchema, session: AsyncSession):
+        try:
+            statement = select(Content).where(Content.app_id == str(app_id), Content.id == str(content_id))
+            result = await session.exec(statement)
+            content = result.one_or_none()
+            if not content: raise NotFoundException(detail="Content not found")
+            content.name = data.name
+            content.slug = slugify(data.name, separator="-")
+            if data.data:
+                if content.data is None: content.data = {}
+                content.data.update(data.data)
+            session.add(content)
+            await session.commit()
+            await session.refresh(content)
+            return content
+        except IntegrityError as ie:
+            await session.rollback()
+            raise BadRequestException(detail=str(ie))

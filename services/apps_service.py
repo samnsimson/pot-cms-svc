@@ -50,6 +50,7 @@ class AppsService:
             await session.refresh(new_app)
             return new_app
         except IntegrityError as e:
+            print(str(e))
             await session.rollback()
             if "name" in str(e): raise UnprocessableEntityException("Cannot create duplicate app")
             if "slug" in str(e): raise UnprocessableEntityException("Cannot create duplicate slug")

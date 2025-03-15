@@ -1,5 +1,7 @@
 from typing import Annotated
-from fastapi import Depends
+from fastapi import Depends, Request
+from httpx import AsyncClient
+from redis import Redis
 from config import config
 from jose import JWTError, jwt
 from exceptions import UnauthorizedException
@@ -8,6 +10,7 @@ from schemas.utils_schema import CurrentUser
 
 async def get_current_user(token: Annotated[str, Depends(config.AUTH_SCHEME)]):
     try:
+        if not token: raise UnauthorizedException("Missing authentication token")
         payload = jwt.decode(token, config.JWT_SECRET, algorithms=[config.JWT_ALGORITHM])
         user_id = payload.get("sub")
         user_role = payload.get("role")
@@ -17,3 +20,7 @@ async def get_current_user(token: Annotated[str, Depends(config.AUTH_SCHEME)]):
         return CurrentUser(id=user_id, host=host, domain=domain, role=user_role)
     except JWTError:
         raise UnauthorizedException("Unauthorized, Error validating jwt token")
+
+
+def get_http_client(request: Request) -> AsyncClient:
+    return request.app.state.http_client

@@ -1,9 +1,9 @@
 from enum import Enum
 import secrets
-from typing import List, Literal, Optional
+from typing import List, Optional
 from uuid import uuid4
 from pydantic import Json
-from sqlalchemy import Column, DateTime
+from sqlalchemy import DateTime, func
 from sqlmodel import Field, Relationship, SQLModel, JSON
 from datetime import datetime, timezone
 
@@ -17,6 +17,10 @@ def generate_uuid():
 def generate_secret_key() -> str:
     length: int = 32
     return secrets.token_hex(length)
+
+
+def default_time():
+    return datetime.now(timezone.utc)
 
 #################### ENUMS ####################
 
@@ -34,41 +38,39 @@ class ContentTypeEnum(str, Enum):
 #################### MIXINS ####################
 
 
-class TimeStamp:
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+class BaseModel(SQLModel):
+    id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
+    created_at: datetime = Field(default_factory=default_time, nullable=False, sa_type=DateTime(timezone=True))
+    updated_at: datetime = Field(default_factory=default_time, nullable=False, sa_type=DateTime(timezone=True), sa_column_kwargs={"onupdate": func.now()})
 
 #################### MANY TO MANY MODELS ####################
 
 
-class UserApps(SQLModel, TimeStamp, table=True):
+class UserApps(BaseModel, table=True):
     user_id: str = Field(foreign_key="user.id", primary_key=True, ondelete="CASCADE")
     app_id: str = Field(foreign_key="app.id", primary_key=True, ondelete="CASCADE")
 
 
-class RolePermission(SQLModel, TimeStamp, table=True):
+class RolePermission(BaseModel, table=True):
     role_id: str = Field(foreign_key="role.id", primary_key=True)
     permission_id: str = Field(foreign_key="permission.id", primary_key=True)
 
 #################### MODELS ####################
 
 
-class Role(SQLModel, TimeStamp, table=True):
-    id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
+class Role(BaseModel, table=True):
     name: RoleEnum = Field(nullable=False, unique=True, index=True)
     users: List["User"] = Relationship(back_populates="role")
     permissions: List["Permission"] = Relationship(back_populates="roles", link_model=RolePermission)
 
 
-class Permission(SQLModel, TimeStamp, table=True):
-    id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
+class Permission(BaseModel, table=True):
     name: str = Field(nullable=False, unique=True)
     description: Optional[str] = Field(default=None)
     roles: List["Role"] = Relationship(back_populates="permissions", link_model=RolePermission)
 
 
-class Domain(SQLModel, TimeStamp, table=True):
-    id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
+class Domain(BaseModel, table=True):
     name: str = Field(nullable=False)
     host: str = Field(nullable=False, unique=True, index=True)
     url: Optional[str] = Field(default=None, nullable=True, unique=True, index=True)
@@ -77,8 +79,7 @@ class Domain(SQLModel, TimeStamp, table=True):
     apps: List["App"] = Relationship(back_populates="domain", cascade_delete=True)
 
 
-class App(SQLModel, TimeStamp, table=True):
-    id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
+class App(BaseModel, table=True):
     name: str = Field(unique=True, index=True, nullable=False)
     slug: str = Field(unique=True, index=True, nullable=False)
     secret: str = Field(default_factory=generate_secret_key, nullable=False)
@@ -89,8 +90,7 @@ class App(SQLModel, TimeStamp, table=True):
     content: List["Content"] = Relationship(back_populates="app", cascade_delete=True)
 
 
-class User(SQLModel, TimeStamp, table=True):
-    id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
+class User(BaseModel, table=True):
     username: str = Field(nullable=False, unique=True, index=True, min_length=3)
     email: str = Field(nullable=False, unique=True, index=True)
     phone: str = Field(nullable=False, unique=True, index=True)
@@ -102,8 +102,7 @@ class User(SQLModel, TimeStamp, table=True):
     apps: List["App"] = Relationship(back_populates="users", link_model=UserApps)
 
 
-class Content(SQLModel, TimeStamp, table=True):
-    id: str = Field(default_factory=generate_uuid, primary_key=True, index=True, nullable=False)
+class Content(BaseModel, table=True):
     name: str = Field(index=True, nullable=False)
     slug: str = Field(unique=True, index=True, nullable=False)
     data: Optional[Json] = Field(default=None, sa_type=JSON)

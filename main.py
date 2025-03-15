@@ -1,6 +1,8 @@
+import httpx
 import uvicorn
 from fastapi import FastAPI
 from config import config
+from redis import Redis
 from contextlib import asynccontextmanager
 from middleware.auth_middleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,8 +16,14 @@ VERSION = config.PROJECT_VERSION
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # startup
     await seed_roles()
-    yield
+    app.state.redis = Redis(host="localhost", port=6379, db=0, decode_responses=True)
+    app.state.http_client = httpx.AsyncClient()
+    yield  # Application runs here
+    # shutdown
+    app.state.redis.close()
+    await app.state.http_client.aclose()
 
 
 app = FastAPI(title=TITLE, description=DESCRIPTION, version=VERSION, root_path="/api/v1", lifespan=lifespan)
