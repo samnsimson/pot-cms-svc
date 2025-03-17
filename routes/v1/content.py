@@ -1,6 +1,7 @@
+import json
 from typing import Sequence
 from uuid import UUID
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from starlette import status
 from dependencies import session_dependency, user_dependency
 from schemas.conent_schema import ContentCreateSchema, ContentOutSchema, ContentUpdateSchema
@@ -9,6 +10,15 @@ from services.conent_service import ContentService
 content_service = ContentService()
 
 router = APIRouter(prefix="/content", tags=["Content"])
+
+
+@router.get("/export", operation_id="export_content", status_code=status.HTTP_200_OK)
+async def export_content(app_id: UUID, content_id: UUID, session: session_dependency):
+    data = await content_service.export_content(app_id, content_id, session)
+    json_data = json.dumps(data, indent=4)
+    response = Response(content=json_data, media_type="application/json")
+    response.headers["Content-Disposition"] = f"attachment; filename=content-{content_id}.json"
+    return response
 
 
 @router.post("/{app_id}", operation_id="create_content", status_code=status.HTTP_201_CREATED, response_model=ContentOutSchema)

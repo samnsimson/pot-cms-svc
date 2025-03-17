@@ -1,13 +1,13 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 from uuid import UUID
-from pydantic import ConfigDict, Json
-from sqlmodel import JSON, Field, SQLModel
+from pydantic import ConfigDict
+from sqlmodel import SQLModel
 
 
 class ContentCreateSchema(SQLModel):
     name: str
-    data: Optional[Dict] = Field(default=None, sa_type=JSON)
+    data: Optional[Dict] = None
     parent_id: Optional[UUID] = None
 
 
@@ -21,7 +21,7 @@ class ContentOutSchema(SQLModel):
     app_id: UUID
     name: str
     slug: str
-    data: Optional[Dict] = Field(default={}, sa_type=JSON)
+    data: Optional[Dict] = None
     parent_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime

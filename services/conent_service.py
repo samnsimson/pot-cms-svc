@@ -48,3 +48,15 @@ class ContentService:
         except IntegrityError as ie:
             await session.rollback()
             raise BadRequestException(detail=str(ie))
+
+    async def export_content(self, app_id: UUID, content_id: UUID, session: AsyncSession):
+        try:
+            statement = select(Content).where(Content.app_id == str(app_id), Content.id == str(content_id))
+            result = await session.exec(statement)
+            content = result.one_or_none()
+            if not content: raise NotFoundException(detail="Content not found")
+            if content.data is None: raise NotFoundException(detail="Cannot export empty data")
+            return content.data
+        except IntegrityError as ie:
+            await session.rollback()
+            raise BadRequestException(detail=str(ie))
