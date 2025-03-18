@@ -55,3 +55,6 @@ alembic/versions/
 
 # Pydantic
 *.pydantic/
+
+# AWS Build
+.aws-*
