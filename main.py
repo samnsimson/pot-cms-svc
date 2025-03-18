@@ -8,6 +8,7 @@ from middleware.auth_middleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from routes import setup_v1_routes
 from seed import seed_roles
+from mangum import Mangum
 
 TITLE = config.PROJECT_NAME
 DESCRIPTION = config.PROJECT_DESCRIPTION
@@ -37,3 +38,5 @@ setup_v1_routes(app)
 
 if __name__ == "__main__":
     uvicorn.run(app="main:app", host="0.0.0.0", port=8000, reload=True)
+
+handler = Mangum(app)
