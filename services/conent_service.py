@@ -1,6 +1,6 @@
 from uuid import UUID
 from slugify import slugify
-from sqlalchemy.exc import IntegrityError, NoResultFound
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import select, asc
 from exceptions import BadRequestException, InternalServerError, NotFoundException, UnprocessableEntityException
 from models import Content
@@ -32,15 +32,15 @@ class ContentService:
 
     async def update_content(self, app_id: UUID, content_id: UUID, data: ContentUpdateSchema, session: AsyncSession):
         try:
+            print(data)
             statement = select(Content).where(Content.app_id == str(app_id), Content.id == str(content_id))
             result = await session.exec(statement)
             content = result.one_or_none()
             if not content: raise NotFoundException(detail="Content not found")
-            content.name = data.name
-            content.slug = slugify(data.name, separator="-")
-            if data.data:
-                if content.data is None: content.data = {}
-                content.data.update(data.data)
+            if data.name:
+                content.name = data.name
+                content.slug = slugify(data.name, separator="-")
+            content.data = data.data if data.data else {}
             session.add(content)
             await session.commit()
             await session.refresh(content)

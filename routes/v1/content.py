@@ -32,6 +32,6 @@ async def get_content(app_id: UUID, session: session_dependency):
     return await content_service.get_content(app_id, session)
 
 
-@router.put("/{app_id}", operation_id="update_content", status_code=status.HTTP_200_OK, response_model=ContentOutSchema)
-async def update_content(app_id: UUID, content_id: UUID, data: ContentUpdateSchema, session: session_dependency, user: user_dependency):
+@router.put("", operation_id="update_content", status_code=status.HTTP_200_OK, response_model=ContentOutSchema)
+async def update_content(app_id: UUID, content_id: UUID, data: ContentUpdateSchema, session: session_dependency):
     return await content_service.update_content(app_id=app_id, content_id=content_id, data=data, session=session)

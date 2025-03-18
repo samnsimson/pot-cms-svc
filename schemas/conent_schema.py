@@ -12,7 +12,7 @@ class ContentCreateSchema(SQLModel):
 
 
 class ContentUpdateSchema(SQLModel):
-    name: str
+    name: Optional[str] = None
     data: Optional[Dict] = None
 
 
