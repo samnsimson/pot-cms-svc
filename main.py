@@ -18,10 +18,11 @@ VERSION = config.PROJECT_VERSION
 async def lifespan(app: FastAPI):
     # startup
     await seed_roles()
+    # app.state.redis = Redis(host="localhost", port=6379, db=0, decode_responses=True)
     app.state.http_client = httpx.AsyncClient()
     yield  # Application runs here
     # shutdown
-    app.state.redis.close()
+    # app.state.redis.close()
     await app.state.http_client.aclose()
 
 

@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     DATABASE_PORT: str = Field(default="5432", description="Database port")
     JWT_SECRET: str = Field(default=None, description="Secret key to encode JWT")
     JWT_ALGORITHM: str = Field(default=None, description="Algorithm used to encode JWT")
+    AWS_ACCESS_KEY: str = Field(description="AWS Access Key")
+    AWS_SECRET_KEY: str = Field(description="AWS Secret Key")
+    AWS_REGION: str = Field(description="AWS Region")
+    S3_BUCKET_NAME: str = Field(description="AWS Region")
     AUTH_SCHEME: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
     class Config:
