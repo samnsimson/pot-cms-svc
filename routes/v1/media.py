@@ -1,3 +1,4 @@
+import os
 from typing import List
 from uuid import UUID
 from fastapi import APIRouter
@@ -29,7 +30,7 @@ async def list_app_media(session: session_dependency, app_id: UUID, media_type: 
 @router.post("/upload", operation_id="upload_media", status_code=status.HTTP_201_CREATED, response_model=MediaResponse)
 async def upload_media(app_id: UUID, session: session_dependency, current_user: user_dependency, file: file_dependency):
     service = MediaService(session)
-    file_name = file.filename
+    file_name = os.path.splitext(file.filename)[0]
     media_type = get_media_type(file.content_type)
     meta_data = MediaMetaData(media_type=media_type, name=file_name, is_public=True, alt_text=file_name, caption=file_name, meta={})
     media = await service.upload_media(app_id=app_id, user_id=current_user.id, file=file, meta_data=meta_data)

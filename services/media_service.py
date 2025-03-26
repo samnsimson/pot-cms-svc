@@ -39,35 +39,40 @@ class MediaService:
 
     async def upload_media(self, app_id: UUID, user_id: UUID, file: UploadFile, meta_data: MediaMetaData) -> Media:
         try:
+            # Validate app and user
             app = await self.session.get(App, str(app_id))
             if not app: raise NotFoundException(detail="App not found")
             user = await self.session.get(User, str(user_id))
             if not user: raise NotFoundException(detail="User not found")
 
+            # Process filename and extension
             original_filename = file.filename or "unnamed"
-            slug_name = slugify(meta_data.name) if meta_data.name else slugify(original_filename)
-            file_extension = os.path.splitext(original_filename)[1].lower()
+            filename_without_ext, file_extension = os.path.splitext(original_filename)
+            file_extension = file_extension.lower()
+
             if not file_extension: raise BadRequestException(detail="File must have an extension")
             if file.size is None or file.size <= 0: raise BadRequestException(detail="File cannot be empty")
+
+            name_to_slugify = meta_data.name or filename_without_ext
+            slug_name = slugify(name_to_slugify)
+            if not slug_name: slug_name = "file"
+            final_filename = f"{slug_name}{file_extension}"
             timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-            file_key = f"media/{app_id}/{timestamp}_{slug_name}"
+            file_key = f"media/{app_id}/{timestamp}_{final_filename}"
 
             try:
                 file_contents = await file.read()
-                await self.s3.upload_file(file_key, file_contents, file.content_type, {
-                    'name': slug_name,
-                    'app_id': app_id,
-                    'original_filename': original_filename,
-                    'media_type': meta_data.media_type.value,
-                    'uploaded_by': str(user_id)
-                })
-            except Exception as e: raise InternalServerError(detail=f"Failed to upload file: {str(e)}") from e
+                meta = {'name': slug_name, 'app_id': str(app_id), 'original_filename': original_filename,
+                        'media_type': meta_data.media_type.value, 'uploaded_by': str(user_id)}
+                await self.s3.upload_file(file_key, file_contents, file.content_type, meta)
+            except Exception as e:
+                raise InternalServerError(detail=f"Failed to upload file: {str(e)}") from e
 
             media = Media(
-                name=slug_name,
+                name=final_filename,
                 original_filename=original_filename,
                 file_key=file_key,
-                file_extension=file_extension,
+                file_extension=file_extension.lstrip('.'),
                 file_size=file.size,
                 mime_type=file.content_type or "application/octet-stream",
                 media_type=meta_data.media_type,
