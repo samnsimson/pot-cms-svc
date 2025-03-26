@@ -28,11 +28,5 @@ class AuthMiddleware(BaseHTTPMiddleware):
             token = await self.auth_scheme(request)
             if not token: raise UnauthorizedException("Missing authentication token")
             payload = self.auth_service.verify_token(token)
-            if self.is_near_expiry(payload):
-                token_data = {"sub": payload.get("sub", None), "host": payload.get("host", None), "role": payload.get("role", None)}
-                new_token = self.auth_service.create_access_token(token_data)
-                response.set_cookie(key="access_token", value=new_token, max_age=timedelta(minutes=30), httponly=True, secure=True, samesite="lax", path="/")
-                return response
-            else: response.delete_cookie(key="access_token")
             return response
         except HTTPException as e: return AuthResponse(str(e))

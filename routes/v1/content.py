@@ -3,7 +3,7 @@ from typing import Sequence
 from uuid import UUID
 from fastapi import APIRouter, Response
 from starlette import status
-from dependencies import session_dependency, user_dependency
+from dependencies import session_dependency
 from schemas.conent_schema import ContentCreateSchema, ContentOutSchema, ContentUpdateSchema
 from services.conent_service import ContentService
 

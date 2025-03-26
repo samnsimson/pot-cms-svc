@@ -2,7 +2,7 @@ from typing import List
 from uuid import UUID
 from fastapi import APIRouter
 from starlette import status
-from dependencies import session_dependency, user_dependency, cache_dependency
+from dependencies import session_dependency, user_dependency
 from exceptions import ForbiddenException, NotFoundException
 from models import RoleEnum
 from schemas.apps_schema import AppCreateSchema, AppDeleteOutSchema, AppOutSchema
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/apps", tags=['Apps'])
 
 
 @router.get("", operation_id="list_apps", status_code=status.HTTP_200_OK, response_model=List[AppOutSchema])
-async def list_apps(user_data: user_dependency, session: session_dependency, cache: cache_dependency):
+async def list_apps(user_data: user_dependency, session: session_dependency):
     apps = await app_service.get_apps(user_data, session)
     return apps
 
