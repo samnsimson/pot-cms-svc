@@ -5,7 +5,7 @@ from fastapi import UploadFile
 from slugify import slugify
 from sqlmodel.ext.asyncio.session import AsyncSession
 from exceptions import InternalServerError, NotFoundException, BadRequestException
-from schemas.media_schema import MediaMetaData
+from schemas.media_schema import MediaMetaData, MediaUpdateSchema
 from services.s3_service import S3Service
 from models import App, User, Media
 import os
@@ -56,4 +56,12 @@ class MediaServiceHelper:
         self.session.add(media)
         await self.session.commit()
         await self.session.refresh(media)
+        return media
+
+    def _update_media_values(self, meta_data: MediaUpdateSchema, media: Media):
+        if meta_data.name is not None: media.name = meta_data.name
+        if meta_data.alt_text is not None: media.alt_text = meta_data.alt_text
+        if meta_data.caption is not None: media.caption = meta_data.caption
+        if meta_data.is_public is not None: media.is_public = meta_data.is_public
+        if meta_data.meta is not None: media.meta = meta_data.meta
         return media

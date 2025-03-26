@@ -54,11 +54,7 @@ class MediaService(MediaServiceHelper):
     async def update_media(self, app_id: UUID, media_id: UUID, meta_data: MediaUpdateSchema) -> Media:
         try:
             media = await self.get_media(app_id, media_id)
-            if meta_data.name is not None: media.name = meta_data.name
-            if meta_data.alt_text is not None: media.alt_text = meta_data.alt_text
-            if meta_data.caption is not None: media.caption = meta_data.caption
-            if meta_data.is_public is not None: media.is_public = meta_data.is_public
-            if meta_data.meta is not None: media.meta = meta_data.meta
+            media = self._update_media_values(meta_data, media)
             self.session.add(media)
             await self.session.commit()
             await self.session.refresh(media)
