@@ -1,12 +1,12 @@
 from uuid import UUID
 from datetime import datetime
 from typing import Optional, List
-from io import BytesIO
 from fastapi import UploadFile
+from slugify import slugify
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select, and_, delete
 from exceptions import InternalServerError, NotFoundException, BadRequestException
-from schemas.media_schema import MediaCreateSchema, MediaUpdateSchema
+from schemas.media_schema import MediaMetaData, MediaUpdateSchema
 from services.s3_service import S3Service
 from models import App, User, Media, MediaTypeEnum
 import os
@@ -37,7 +37,7 @@ class MediaService:
         except Exception as e:
             raise InternalServerError(detail="Failed to fetch media list") from e
 
-    async def upload_media(self, app_id: UUID, user_id: UUID, file: UploadFile, media_data: MediaCreateSchema) -> Media:
+    async def upload_media(self, app_id: UUID, user_id: UUID, file: UploadFile, meta_data: MediaMetaData) -> Media:
         try:
             app = await self.session.get(App, str(app_id))
             if not app: raise NotFoundException(detail="App not found")
@@ -45,30 +45,36 @@ class MediaService:
             if not user: raise NotFoundException(detail="User not found")
 
             original_filename = file.filename or "unnamed"
+            slug_name = slugify(meta_data.name) if meta_data.name else slugify(original_filename)
             file_extension = os.path.splitext(original_filename)[1].lower()
             if not file_extension: raise BadRequestException(detail="File must have an extension")
             if file.size is None or file.size <= 0: raise BadRequestException(detail="File cannot be empty")
-
             timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-            file_key = f"media/{app_id}/{timestamp}_{original_filename}"
+            file_key = f"media/{app_id}/{timestamp}_{slug_name}"
 
             try:
                 file_contents = await file.read()
-                await self.s3.upload_file(file_key, BytesIO(file_contents), file.content_type)
+                await self.s3.upload_file(file_key, file_contents, file.content_type, {
+                    'name': slug_name,
+                    'app_id': app_id,
+                    'original_filename': original_filename,
+                    'media_type': meta_data.media_type.value,
+                    'uploaded_by': str(user_id)
+                })
             except Exception as e: raise InternalServerError(detail=f"Failed to upload file: {str(e)}") from e
 
             media = Media(
-                name=media_data.name or original_filename,
+                name=slug_name,
                 original_filename=original_filename,
                 file_key=file_key,
                 file_extension=file_extension,
                 file_size=file.size,
                 mime_type=file.content_type or "application/octet-stream",
-                media_type=media_data.media_type,
-                is_public=media_data.is_public,
-                alt_text=media_data.alt_text,
-                caption=media_data.caption,
-                meta=media_data.meta,
+                media_type=meta_data.media_type,
+                is_public=meta_data.is_public,
+                alt_text=meta_data.alt_text,
+                caption=meta_data.caption,
+                meta=meta_data.meta,
                 app_id=str(app_id),
                 uploaded_by_id=str(user_id)
             )
@@ -82,14 +88,14 @@ class MediaService:
             if isinstance(e, (NotFoundException, BadRequestException, InternalServerError)): raise
             raise InternalServerError(detail="Failed to upload media") from e
 
-    async def update_media(self, app_id: UUID, media_id: UUID, media_data: MediaUpdateSchema) -> Media:
+    async def update_media(self, app_id: UUID, media_id: UUID, meta_data: MediaUpdateSchema) -> Media:
         try:
             media = await self.get_media(app_id, media_id)
-            if media_data.name is not None: media.name = media_data.name
-            if media_data.alt_text is not None: media.alt_text = media_data.alt_text
-            if media_data.caption is not None: media.caption = media_data.caption
-            if media_data.is_public is not None: media.is_public = media_data.is_public
-            if media_data.meta is not None: media.meta = media_data.meta
+            if meta_data.name is not None: media.name = meta_data.name
+            if meta_data.alt_text is not None: media.alt_text = meta_data.alt_text
+            if meta_data.caption is not None: media.caption = meta_data.caption
+            if meta_data.is_public is not None: media.is_public = meta_data.is_public
+            if meta_data.meta is not None: media.meta = meta_data.meta
 
             self.session.add(media)
             await self.session.commit()

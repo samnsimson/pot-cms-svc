@@ -13,13 +13,12 @@ class S3Service:
         self.s3 = boto3.client('s3', aws_access_key_id=config.AWS_ACCESS_KEY, aws_secret_access_key=config.AWS_SECRET_KEY, region_name=config.AWS_REGION)
         self.bucket_name = config.S3_BUCKET_NAME
 
-    async def upload_file(self, file_key: str, file: UploadFile, metadata: Optional[dict] = None) -> bool:
+    async def upload_file(self, file_key: str, file_contents: bytes, content_type: str, metadata: Optional[dict] = None) -> bool:
         try:
-            file_contents = await file.read()
-            self.s3.upload_fileobj(BytesIO(file_contents), self.bucket_name, file_key, ExtraArgs={'Metadata': metadata or {}, 'ContentType': file.content_type})
+            extra_args = {'Metadata': metadata or {}, 'ContentType': content_type}
+            self.s3.upload_fileobj(BytesIO(file_contents), self.bucket_name, file_key, ExtraArgs=extra_args)
             return True
-        except ClientError as e:
-            raise InternalServerError(detail=f"S3 upload failed: {str(e)}")
+        except ClientError as e: raise InternalServerError(detail=f"S3 upload failed: {str(e)}")
 
     async def delete_file(self, file_key: str) -> bool:
         try:

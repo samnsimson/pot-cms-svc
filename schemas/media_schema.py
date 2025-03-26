@@ -1,19 +1,16 @@
-from typing import Optional
+from typing import Dict, Optional
 from uuid import UUID
-from fastapi import UploadFile
 from sqlmodel import Field, SQLModel
-from pydantic import validator
 from models import Media, MediaTypeEnum
-import os
 
 
-class MediaCreateSchema(SQLModel):
+class MediaMetaData(SQLModel):
     media_type: MediaTypeEnum
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     is_public: bool = True
     alt_text: Optional[str] = Field(None, min_length=1, max_length=512)
     caption: Optional[str] = Field(None, min_length=1, max_length=2048)
-    meta: Optional[dict] = None
+    meta: Optional[Dict] = None
 
 
 class MediaUpdateSchema(SQLModel):
@@ -21,7 +18,7 @@ class MediaUpdateSchema(SQLModel):
     alt_text: Optional[str] = Field(None, min_length=1, max_length=512)
     caption: Optional[str] = Field(None, min_length=1, max_length=2048)
     is_public: Optional[bool] = None
-    meta: Optional[dict] = None
+    meta: Optional[Dict] = None
 
 
 class MediaResponse(SQLModel):

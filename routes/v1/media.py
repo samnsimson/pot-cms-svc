@@ -3,8 +3,9 @@ from uuid import UUID
 from fastapi import APIRouter
 from starlette import status
 from dependencies import session_dependency, user_dependency, file_dependency
-from schemas.media_schema import MediaCreateSchema, MediaResponse, MediaUpdateSchema
+from schemas.media_schema import MediaMetaData, MediaResponse, MediaUpdateSchema
 from services.media_service import MediaService
+from utils import get_media_type
 
 
 router = APIRouter(prefix="/media", tags=["Media"])
@@ -26,9 +27,12 @@ async def list_app_media(session: session_dependency, app_id: UUID, media_type: 
 
 
 @router.post("/upload", operation_id="upload_media", status_code=status.HTTP_201_CREATED, response_model=MediaResponse)
-async def upload_media(app_id: UUID, session: session_dependency, current_user: user_dependency, file: file_dependency, data: MediaCreateSchema):
+async def upload_media(app_id: UUID, session: session_dependency, current_user: user_dependency, file: file_dependency):
     service = MediaService(session)
-    media = await service.upload_media(app_id, current_user["id"], file, data)
+    file_name = file.filename
+    media_type = get_media_type(file.content_type)
+    meta_data = MediaMetaData(media_type=media_type, name=file_name, is_public=True, alt_text=file_name, caption=file_name, meta={})
+    media = await service.upload_media(app_id=app_id, user_id=current_user.id, file=file, meta_data=meta_data)
     url = await service.get_media_url(media)
     return MediaResponse.from_model(media, url)
 
