@@ -50,8 +50,8 @@ class MediaServiceHelper:
             await self.s3.upload_file(file_key, file_contents, file.content_type, meta)
         except Exception as e: raise InternalServerError(detail=f"Failed to upload file: {str(e)}") from e
 
-    async def _create_media_record(self, app_id: UUID, user_id: UUID, file: UploadFile, meta_data: MediaMetaData, original_filename: str, file_extension: str, file_key: str, slug_name: str) -> Media:
-        media = Media(name=slug_name, original_filename=original_filename, file_key=file_key, file_extension=file_extension.lstrip('.'), file_size=file.size, mime_type=file.content_type or "application/octet-stream",
+    async def _create_media_record(self, app_id: UUID, user_id: UUID, file: UploadFile, meta_data: MediaMetaData, original_filename: str, file_extension: str, file_key: str, file_path: str, slug_name: str) -> Media:
+        media = Media(name=slug_name, original_filename=original_filename, file_key=file_key, file_path=file_path, file_extension=file_extension.lstrip('.'), file_size=file.size, mime_type=file.content_type or "application/octet-stream",
                       media_type=meta_data.media_type, is_public=meta_data.is_public, alt_text=meta_data.alt_text, caption=meta_data.caption, meta=meta_data.meta, app_id=str(app_id), uploaded_by_id=str(user_id))
         self.session.add(media)
         await self.session.commit()

@@ -8,6 +8,7 @@ from schemas.media_schema import MediaMetaData, MediaUpdateSchema
 from services.helpers.media_service_helper import MediaServiceHelper
 from services.s3_service import S3Service
 from models import Media, MediaTypeEnum
+from config import config
 
 
 class MediaService(MediaServiceHelper):
@@ -43,8 +44,9 @@ class MediaService(MediaServiceHelper):
             self._validate_file(file, file_extension)
             slug_name = self._generate_slug_name(meta_data.name, original_filename)
             file_key = self._generate_file_key(app_id, slug_name, file_extension)
+            file_path = f"{config.AWS_DIST_URL}/{file_key}"
             await self._upload_to_s3(file, file_key, app_id, user_id, meta_data, slug_name, original_filename)
-            media = await self._create_media_record(app_id, user_id, file, meta_data, original_filename, file_extension, file_key, slug_name)
+            media = await self._create_media_record(app_id, user_id, file, meta_data, original_filename, file_extension, file_key, file_path, slug_name)
             return media
         except Exception as e:
             await self.session.rollback()
@@ -79,8 +81,5 @@ class MediaService(MediaServiceHelper):
             raise InternalServerError(detail="Failed to delete media") from e
 
     async def get_media_url(self, media: Media) -> Optional[str]:
-        try:
-            if not media.is_public: return None
-            return self.s3.generate_presigned_url(media.file_key)
-        except Exception as e:
-            raise InternalServerError(status_code=500, detail="Failed to generate media URL") from e
+        if not media.is_public: return None
+        return media.file_path

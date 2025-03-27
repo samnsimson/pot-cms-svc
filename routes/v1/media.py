@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter
 from starlette import status
 from dependencies import session_dependency, user_dependency, file_dependency
+from models import MediaTypeEnum
 from schemas.media_schema import MediaMetaData, MediaResponse, MediaUpdateSchema
 from services.media_service import MediaService
 from utils import get_media_type
@@ -21,7 +22,7 @@ async def get_media(app_id: UUID, media_id: UUID, session: session_dependency):
 
 
 @router.get("/{app_id}", operation_id="list_app_media", status_code=status.HTTP_200_OK, response_model=List[MediaResponse])
-async def list_app_media(session: session_dependency, app_id: UUID, media_type: str | None = None, limit: int = 100, offset: int = 0):
+async def list_app_media(session: session_dependency, app_id: UUID, media_type: MediaTypeEnum | None = None, limit: int = 100, offset: int = 0):
     service = MediaService(session)
     media_list = await service.list_app_media(app_id, media_type, limit, offset)
     return [MediaResponse.from_model(media, await service.get_media_url(media)) for media in media_list]

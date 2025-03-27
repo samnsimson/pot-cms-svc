@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     AWS_SECRET_KEY: str = Field(description="AWS Secret Key")
     AWS_REGION: str = Field(description="AWS Region")
     S3_BUCKET_NAME: str = Field(description="AWS Region")
+    AWS_DIST_URL: str = Field(description="AWS Region")
     AUTH_SCHEME: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
     class Config:
